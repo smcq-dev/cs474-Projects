@@ -50,7 +50,12 @@ int main(int argc, char **argv)
             counter++;
         } while ((token = strtok(NULL, ",")) != NULL);
 
-    
+        table[i-1].pid = i - 1;
+        table[i-1].state = ready;
+        table[i-1].sleep_time_remaining = 0;
+        table[i-1].awake_time_remaining = table[i-1].instructions[0];
+        table[i-1].pc = 0;
+
     }
 
     for(int i=0; i < argc-1; i++){
