@@ -9,8 +9,6 @@
 
 #define MIN(x,y) ((x)<(y)?(x):(y)) // Compute the minimum
 
-// TODO: all the code!
-
 enum State {
     ready,
     sleeping,
@@ -29,14 +27,50 @@ struct process {
 
 struct process table[MAX_PROCS];
 
+int all_exited(int argc) {
+    for(int i=0; i < argc-1; i++) {
+        if(table[i].state != exited) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+void decrement_sleep_time(int time, int argc) {
+    for(int i=0; i < argc-1; i++) {
+        if(table[i].state == sleeping) {
+            table[i].sleep_time_remaining -= time;
+        }
+    }
+}
+
+int next_available_process(int argc) {
+    int soonest_pid = 0;
+    for (int i=0; i < argc-1; i++) {
+        if (table[i].state == sleeping) {
+            soonest_pid = i;
+            break;
+        }
+    }
+
+    for (int i=0; i < argc-1; i++) {
+        if (table[i].state == sleeping) {
+            if(table[i].sleep_time_remaining < table[soonest_pid].sleep_time_remaining) {
+                soonest_pid = i;
+            }
+        }
+    }
+    return soonest_pid;
+}
+
+
+
 
 /**
  * Main.
  */
 int main(int argc, char **argv)
 {
-    printf("argc: %d\n", argc);
-
     int clock = 0;
 
     struct queue *q = queue_new();
@@ -58,18 +92,70 @@ int main(int argc, char **argv)
 
     }
 
-    for(int i=0; i < argc-1; i++){
-        for(int j=0; j < MAX_PROG_LEN; j++) {
-            if(table[i].instructions[j] != 0) {
-                printf("%d", table[i].instructions[j]);
-            }
-        }
-        puts("\n");
+    for (int i=0; i < argc-1; i++) {
+        queue_enqueue(q, &table[i]);
     }
 
-    // TODO
+    while (all_exited(argc) != 1) {
+        if(queue_is_empty(q)) {
+            int next_process = next_available_process(argc);
+            clock += table[next_process].sleep_time_remaining;
+            decrement_sleep_time(table[next_process].sleep_time_remaining, argc);
+        }
 
+        printf("=== Clock %d ms ===\n", clock);
 
+        //Find sleeping processes with < 0 sleep time
+        for(int i=0; i < argc-1; i++){
+            if(table[i].state == sleeping) {
+                if(table[i].sleep_time_remaining <= 0){
+                    table[i].pc ++;
+                    if(table[i].instructions[table[i].pc] == 0){
+                        table[i].state = exited;
+                        printf("PID %d: Exiting\n", i);
+                    }
+                    else{
+                        table[i].state = ready;
+                        table[i].awake_time_remaining = table[i].instructions[table[i].pc];
+                        printf("PID %d: Waking up for %d ms\n", i, table[i].instructions[table[i].pc]);
+                        queue_enqueue(q, &table[i]);
+                    }
+                }
+            }
+        }
+
+        struct process* p = queue_dequeue(q);
+        if (p == NULL) continue;
+
+        printf("PID %d: Running\n", p->pid);
+
+        //Run process
+        int lower_time = MIN(p->awake_time_remaining, QUANTUM);
+    
+        p->awake_time_remaining -= lower_time;
+        decrement_sleep_time(lower_time, argc);
+
+        if (p->awake_time_remaining > 0){
+            queue_enqueue(q, p);
+        }
+        else{
+            p->pc ++;
+            if(p->instructions[p->pc] == 0){
+                p->state = exited;
+                printf("PID %d: Exiting\n", p->pid);
+            }
+            else{
+                p->state = sleeping;
+                p->sleep_time_remaining = p-> instructions[p->pc];
+                printf("PID %d: Sleeping for %d ms\n", p->pid, p->sleep_time_remaining);
+            }
+        }
+
+        clock += lower_time;
+
+        printf("PID %d: Ran for %d ms\n", p->pid, lower_time);
+
+    }
 
     queue_free(q);
 }
