@@ -1,0 +1,3 @@
+Note that reader_count is atomic while writer_count is not. This is because only a single reader can acquire a lock at once, meaning there will never be a time where two writers are working concurrently, hence never an oppurtunity for a race condition on writer_count. On the other hand, multiple readers can run at once so reader_count must be atomic. 
+
+A negative of this solution is that writers can be starved. Think about it. As long as a single reader has a lock, a writer cannot access it. So what if readers continually acquire the lock, never letting reader_count fall below zero, and never letting a writer acquire the lock, starving it. 
