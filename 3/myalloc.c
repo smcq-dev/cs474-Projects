@@ -41,9 +41,9 @@ void *myalloc(int size) {
 
     if (head == NULL) {
         void *heap = mmap(NULL, 1024, PROT_READ|PROT_WRITE, MAP_ANON|MAP_PRIVATE, -1, 0);
-        if (heap == NULL) {
+        if (heap == MAP_FAILED) {
             puts("MMAP FAILED");
-            return 0;
+            return NULL;
         }
         head = heap;
         int data_size = 1024 - PADDED_SIZEOF(struct block);
@@ -56,9 +56,23 @@ void *myalloc(int size) {
 
     while(cur != NULL) {
         if (cur->size >= PADDED_SIZE(size) && cur->in_use == 0) {
+            if (cur->size >= PADDED_SIZE(size) + (int)PADDED_SIZEOF(struct block) + ALIGNMENT) {
+                int original_size = cur->size;
+                void *original_next = cur->next;
+                cur->size = PADDED_SIZE(size);
+                cur->next = PTR_OFFSET(cur, PADDED_SIZE(size) + PADDED_SIZEOF(struct block));
+
+                struct block *next_ptr = cur->next;
+                next_ptr->next = original_next;
+                next_ptr->size = original_size - PADDED_SIZE(size) - PADDED_SIZEOF(struct block);
+                next_ptr->in_use = 0;
+
+            }
             cur->in_use = 1;
             return PTR_OFFSET(cur, PADDED_SIZEOF(struct block));
         }
+
+
         cur = cur->next;
     }
 
@@ -75,8 +89,8 @@ void *myalloc(int size) {
  */
 void myfree(void *p)
 {
-    // TODO
-    (void)p;  // silence unused variable warnings
+    struct block *b = PTR_OFFSET(p, -PADDED_SIZEOF(struct block));
+    b->in_use = 0;
 }
 
 // ---------------------------------------------------------
