@@ -91,6 +91,19 @@ void myfree(void *p)
 {
     struct block *b = PTR_OFFSET(p, -PADDED_SIZEOF(struct block));
     b->in_use = 0;
+
+    struct block *curr = head;
+    while(curr != NULL) {
+        struct block *next = curr->next;
+
+        if(next != NULL && curr->in_use == 0 && next->in_use == 0) {
+            curr->size = PADDED_SIZEOF(struct block) + curr->size + next->size;
+            curr->next = next->next;
+            continue;
+        }
+        curr = next;
+    }
+
 }
 
 // ---------------------------------------------------------
