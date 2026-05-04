@@ -87,6 +87,50 @@ void new_process(int proc_num, int page_count)
     }
 }
 
+void kill_process(int proc_num) {
+
+    int pt_page = get_page_table(proc_num);
+
+    for(int i = 0; i < PAGE_COUNT; i++) {
+        int phys_page = mem[get_address(pt_page, i)];
+        if (phys_page != 0) {
+            mem[phys_page] = 0;
+        }
+    }
+
+    mem[pt_page] = 0;
+
+}
+
+int get_addr(int proc_num, int vaddr) {
+
+    int vpage = vaddr >> 8;
+
+    int ptable = get_page_table(proc_num);
+
+    int ppage = mem[get_address(ptable, vpage)];
+
+    int offset = vaddr & 255;
+
+    int paddr = (ppage << 8) | offset;
+
+    return paddr;
+}
+
+void store_value(int proc_num, int vaddr, int val) {
+    int addr = get_addr(proc_num, vaddr);
+    mem[addr] = val;
+    printf("Store proc %d: %d => %d, value=%d\n",
+    proc_num, vaddr, addr, val);
+}
+
+void get_value(int proc_num, int vaddr) {
+    int addr = get_addr(proc_num, vaddr);
+    int val = mem[addr];
+    printf("Load proc %d: %d => %d, value=%d\n",
+    proc_num, vaddr, addr, val);
+}
+
 //
 // Print the free page map
 //
@@ -156,6 +200,25 @@ int main(int argc, char *argv[])
             int proc_num = atoi(argv[++i]);
             int page_count = atoi(argv[++i]);
             new_process(proc_num, page_count);
+        }
+
+        else if (strcmp(argv[i], "kp") == 0) {
+            int proc_num = atoi(argv[++i]);
+            kill_process(proc_num);
+
+        }
+
+        else if (strcmp(argv[i], "sb") == 0) {
+            int proc_num = atoi(argv[++i]);
+            int vaddr = atoi(argv[++i]);
+            int val = atoi(argv[++i]);
+            store_value(proc_num, vaddr, val);
+        }
+
+        else if (strcmp(argv[i], "lb") == 0) {
+            int proc_num = atoi(argv[++i]);
+            int vaddr = atoi(argv[++i]);
+            get_value(proc_num, vaddr);
         }
     }
 }
