@@ -23,6 +23,12 @@ Command line:
 * `image.h` header file for `image.c`
 * `Makefile` to help build the program, clean up executables and create and run the test file
 * `testfs.c` for all testing logic of opening and closing images, and reading and writing blocks. 
+* `free.c` to provide functions that allow us to find free bits and set bits in a block to in use or free
+* `free.h` header for `free.c`
+* `inode.c` provides a function ialloc(), that looks at the inode block and finds the first avaiable inode and sets it
+* `inode.h`header for `inode.c`
+* `mkfs.c` provides a function mkfs() that initializes the file system to have all the blocks zeroed, and sets the first 7 blocks in the block map.
+* `mkfs.h` header for `mkfs.c`
 
 
 ## Data
@@ -59,6 +65,11 @@ This program uses file descriptors and unix OS syscalls for most of its data. Be
     * `bwrite()`
     * `bread()`
     * `image_close()`
+  * `find_free()`: finds the first free bit in a block
+  * `set_free()`: sets a bit in a block to free / in use
+  * `ialloc()`: finds the first available bit in the inode map and sets it to in use
+  * `alloc()`: finds the first available bit in the block map and sets it to in use
+  * `mkfs()`: sets inode block and inode data blocks to all zeros and intializes file system
   * `CTEST_RESULTS()`: Prints pass/fail summary
   * `CTEST_EXIT()`: Exits with status reflecting test results
 

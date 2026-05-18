@@ -3,8 +3,8 @@ CFLAGS = -Wall -Wextra -Werror
 
 all: testfs
 
-libvvsfs.a: image.o block.o
-	ar rcs libvvsfs.a image.o block.o
+libvvsfs.a: image.o block.o free.o inode.o mkfs.o
+	ar rcs libvvsfs.a image.o block.o free.o inode.o mkfs.o
 
 image.o: image.c image.h
 	$(CC) $(CFLAGS) -c image.c
@@ -12,7 +12,16 @@ image.o: image.c image.h
 block.o: block.c block.h
 	$(CC) $(CFLAGS) -c block.c
 
-testfs.o: testfs.c ctest.h image.h block.h
+free.o: free.c free.h
+	$(CC) $(CFLAGS) -c free.c
+
+inode.o: inode.c inode.h
+	$(CC) $(CFLAGS) -c inode.c
+
+mkfs.o: mkfs.c mkfs.h
+	$(CC) $(CFLAGS) -c mkfs.c
+
+testfs.o: testfs.c ctest.h image.h block.h free.h inode.h mkfs.h
 	$(CC) $(CFLAGS) -c testfs.c
 
 testfs: testfs.o libvvsfs.a
