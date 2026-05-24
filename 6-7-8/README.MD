@@ -29,6 +29,8 @@ Command line:
 * `inode.h`header for `inode.c`
 * `mkfs.c` provides a function mkfs() that initializes the file system to have all the blocks zeroed, and sets the first 7 blocks in the block map.
 * `mkfs.h` header for `mkfs.c`
+* `pack.c` provides functions for packing and unpacking bytes
+* `pack.h` header for `pack.c`
 
 
 ## Data
@@ -67,9 +69,16 @@ This program uses file descriptors and unix OS syscalls for most of its data. Be
     * `image_close()`
   * `find_free()`: finds the first free bit in a block
   * `set_free()`: sets a bit in a block to free / in use
-  * `ialloc()`: finds the first available bit in the inode map and sets it to in use
+  * `ialloc()`: finds the first available inode that isn't in use, and sets in use, writes that to disk and returns the     inode
   * `alloc()`: finds the first available bit in the block map and sets it to in use
   * `mkfs()`: sets inode block and inode data blocks to all zeros and intializes file system
+  * `incore_find_free()`: Finds the first free incore inode in the incore inode array.
+  * `incore_find()`: Finds an incore inode with a specific inode number in the incore inode array.
+  * `incore_free_all()`: Frees all incore inodes in the incore inode array.
+  * `read_inode()`: Reads an inode from the inode blocks into a inode struct.
+  * `write_inode()`: Writes an inode struct into the proper inode block.
+  * `iget()`: Finds an inode and increments its ref_count, then returns it.
+  * `iput()`: Returns instantly if the inode ref_count is 0, decrements it if not, if new ref_count is 0 it writes it to disk.
   * `CTEST_RESULTS()`: Prints pass/fail summary
   * `CTEST_EXIT()`: Exits with status reflecting test results
 
