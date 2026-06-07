@@ -1,4 +1,4 @@
-# Project 6: Starting the File System
+# Project 10: File System
 
 
 ## Building
@@ -31,6 +31,14 @@ Command line:
 * `mkfs.h` header for `mkfs.c`
 * `pack.c` provides functions for packing and unpacking bytes
 * `pack.h` header for `pack.c`
+* `dir.c` provides functions to open, get and close directories
+* `dir.h` header for `dir.c`
+* `ls.c` provides a function that acts as ls in a terminal
+* `ls.h` header for `ls.c`
+* `pathname.c` provides the namei function that returns the inode of the directory specified
+* `pathname.h` header for `pathname.c`
+* `dirbasename.c` provides functionality for getting the base name and directory name of a path
+* `dirbasename.h` header file for `dirbasename.c`
 
 
 ## Data
@@ -79,6 +87,12 @@ This program uses file descriptors and unix OS syscalls for most of its data. Be
   * `write_inode()`: Writes an inode struct into the proper inode block.
   * `iget()`: Finds an inode and increments its ref_count, then returns it.
   * `iput()`: Returns instantly if the inode ref_count is 0, decrements it if not, if new ref_count is 0 it writes it to disk.
+  * `directory_open()`: opens a directory by getting an inode using iget(), then loading inode informatino into a directory struct.
+  * `directory_get()`: gets directory information from the inode including name.
+  * `directory_close()`: closes a directory by iputting it and freeing it. 
+  * `directory_make()`: creates a new directory and its inode in the file system, updating relevant data blocks and sizes. 
+  * `namei()`: returns the inode of a directory of a specified path
+  * `ls()`: provides a pseudo ls() that displays current files inside a directory.
   * `CTEST_RESULTS()`: Prints pass/fail summary
   * `CTEST_EXIT()`: Exits with status reflecting test results
 
@@ -86,4 +100,4 @@ This program uses file descriptors and unix OS syscalls for most of its data. Be
 ## Notes
 
 
-* This program is being used to build upon for a number of future projects, meaning functionality might be incomplete, and implementation may have to change slightly depending on future requirements, unless the specification for this program is completly write. 
+* This program is being used to build upon for a number of future projects, meaning functionality might be incomplete, and implementation may have to change slightly depending on future requirements, unless the specification for this program is completly correct. At this point, the program has the majority of it's potential functionality, but there is still plenty that could be added, including actual files themselves and not just directories. 

@@ -8,6 +8,10 @@
 #include "block.h"
 #include <string.h>
 #include "pack.h"
+#include "dir.h"
+#include "ls.h"
+#include "pathname.h"
+#include "dirbasename.h"
 
 void image_open_success(void) {
     CTEST_ASSERT(image_open("test.img", 1) != -1, "testing that image open works");
@@ -137,7 +141,7 @@ void ialloc_when_all_inodes_free(void) {
 
     struct inode *result = ialloc();
     CTEST_ASSERT(result != NULL, "ialloc returns non-NULL on first call");
-    CTEST_ASSERT(result->inode_num == 0, "first ialloc returns inode 0");
+    CTEST_ASSERT(result->inode_num == 1, "first ialloc returns inode 1");
     image_close();
 }
 
@@ -150,9 +154,9 @@ void ialloc_sequentially_works(void) {
     struct inode *result2 = ialloc();
     struct inode *result3 = ialloc();
 
-    CTEST_ASSERT(result1->inode_num == 0, "first ialloc returns inode 0");
-    CTEST_ASSERT(result2->inode_num == 1, "second ialloc returns inode 1");
-    CTEST_ASSERT(result3->inode_num == 2, "third ialloc returns inode 2");
+    CTEST_ASSERT(result1->inode_num == 1, "first ialloc returns inode 1");
+    CTEST_ASSERT(result2->inode_num == 2, "second ialloc returns inode 2");
+    CTEST_ASSERT(result3->inode_num == 3, "third ialloc returns inode 3");
     image_close();
 }
 
@@ -186,9 +190,10 @@ void alloc_sequentially_works(void) {
 void mkfs_works(void) {
     image_open("test.img", 1);
     mkfs();
+    incore_free_all();
     unsigned char block[BLOCK_SIZE];
     bread(2, block);
-    CTEST_ASSERT(block[0] == 0x7f, "mkfs marks first 7 blocks");
+    CTEST_ASSERT(block[0] == 0xff, "mkfs marks first 8 blocks");
     image_close();
 }
 
@@ -333,8 +338,72 @@ void iput_writes_to_disk(void) {
     image_close();
 }
 
+void mkfs_creates_root_directory(void) {
+    image_open("test.img", 1);
+    mkfs();
+    incore_free_all();
+
+    struct directory *dir = directory_open(0);
+    struct directory_entry dent;
+
+    directory_get(dir, &dent);
+
+    CTEST_ASSERT(strcmp(dent.name, ".") == 0, "mfks initializes directory entry with inode 0");
+    image_close();
+}
+
+void directory_open_returns_null_when_incore_full(void) {
+    incore_free_all();
+
+    for (int i = 0; i < MAX_SYS_OPEN_FILES; i++) {
+        struct inode *in = incore_find_free();
+        in->ref_count = 1;
+        in->inode_num = i + 100;
+    }
+
+    struct directory *dir = directory_open(0);
+    CTEST_ASSERT(dir == NULL, "directory_open returns NULL when in-core is full");
+    incore_free_all();
+}
+
+void namei_root_returns_zero(void) {
+    image_open("test.img", 1);
+    mkfs();
+    incore_free_all();
+
+    struct inode *in = namei("/");
+    CTEST_ASSERT(in != NULL, "namei(/) doesn't return null");
+    CTEST_ASSERT(in->inode_num == 0, "calling namei on '/' returns inode 0");
+    iput(in);
+    image_close();
+}
+
+void new_directory_works(void) {
+    image_open("test.img", 1);
+    mkfs();
+    incore_free_all();
+
+    directory_make("/foo");
+
+    struct inode *in = namei("/foo");
+
+    CTEST_ASSERT(in->inode_num == 1, "The first directory created after the root is inode 1");
+    iput(in);
+    image_close();
+}
+
+void namei_on_junk_fails(void) {
+    image_open("test.img", 1);
+    mkfs();
+    incore_free_all();
+
+    struct inode *in = namei("/doesntexist");
+    CTEST_ASSERT(in == NULL, "namei(/doesntexist) returns null");
+    image_close();
+}
 
 int main(void) {
+    //CTEST_VERBOSE(1);
     image_open_success();
     image_open_image_fd_set();
     image_close_success();
@@ -360,7 +429,11 @@ int main(void) {
     iget_returns_same_ptr_multiple_calls();
     iget_returns_null();
     iput_decrements_ref_count();
-    
+    mkfs_creates_root_directory();
+    directory_open_returns_null_when_incore_full();
+    namei_root_returns_zero();
+    new_directory_works();
+    namei_on_junk_fails();
     CTEST_RESULTS();
     CTEST_EXIT();
 }
